@@ -57,9 +57,15 @@ class WithdrawalsController {
     }
 
     @GetMapping(value = "/withdrawals", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
-    Flux<?> withdrawals() {
+    Flux<DomainEvent> withdrawals() {
         return Flux.create(sink -> {
-            MessageHandler messageHandler = msg ->  sink.next(convert(msg));
+            MessageHandler messageHandler = msg -> {
+                DomainEvent event = convert(msg);
+                if (event.getType().equals("card-withdrawn")) {
+                    sink.next(event);
+
+                }
+            };
             channels.cards().subscribe(messageHandler);
             sink.onCancel(() -> channels.cards().unsubscribe(messageHandler));
         });
